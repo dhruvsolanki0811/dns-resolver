@@ -1,0 +1,17 @@
+# Go binaries
+/dns-resolver
+*.exe
+
+# Test/coverage artifacts
+*.test
+*.out
+coverage.txt
+
+# Local design/brainstorming docs — keep out of public repo
+docs/superpowers/
+
+# Editor/IDE
+.idea/
+.vscode/
+*.swp
+.DS_Store
