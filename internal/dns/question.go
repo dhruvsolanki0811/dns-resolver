@@ -7,6 +7,10 @@ type QueryType uint16
 const (
 	TypeUnknown QueryType = 0
 	TypeA       QueryType = 1
+	TypeNS      QueryType = 2
+	TypeCNAME   QueryType = 5
+	TypeMX      QueryType = 15
+	TypeAAAA    QueryType = 28
 )
 
 // String renders the type as its registry name when known.
@@ -14,6 +18,14 @@ func (q QueryType) String() string {
 	switch q {
 	case TypeA:
 		return "A"
+	case TypeNS:
+		return "NS"
+	case TypeCNAME:
+		return "CNAME"
+	case TypeMX:
+		return "MX"
+	case TypeAAAA:
+		return "AAAA"
 	default:
 		return fmt.Sprintf("UNKNOWN(%d)", uint16(q))
 	}

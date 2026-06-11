@@ -92,6 +92,14 @@ func typeFromString(s string) dns.QueryType {
 	switch strings.ToUpper(s) {
 	case "A":
 		return dns.TypeA
+	case "NS":
+		return dns.TypeNS
+	case "CNAME":
+		return dns.TypeCNAME
+	case "MX":
+		return dns.TypeMX
+	case "AAAA":
+		return dns.TypeAAAA
 	default:
 		return dns.TypeUnknown
 	}
