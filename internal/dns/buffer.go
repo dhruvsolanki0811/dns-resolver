@@ -146,3 +146,96 @@ func (b *BytePacketBuffer) ReadQName() (string, error) {
 	}
 	return out.String(), nil
 }
+
+// -----------------------------------------------------------------------------
+// Write side — used to build outgoing query packets and (later) responses.
+// -----------------------------------------------------------------------------
+
+// Write puts one byte at the cursor and advances.
+func (b *BytePacketBuffer) Write(v byte) error {
+	if b.Pos >= len(b.Buf) {
+		return errors.New("buffer write past end")
+	}
+	b.Buf[b.Pos] = v
+	b.Pos++
+	return nil
+}
+
+func (b *BytePacketBuffer) WriteU8(v uint8) error {
+	return b.Write(v)
+}
+
+// WriteU16 writes a big-endian 16-bit value (2 bytes).
+func (b *BytePacketBuffer) WriteU16(v uint16) error {
+	if err := b.Write(byte(v >> 8)); err != nil {
+		return err
+	}
+	return b.Write(byte(v))
+}
+
+// WriteU32 writes a big-endian 32-bit value (4 bytes).
+func (b *BytePacketBuffer) WriteU32(v uint32) error {
+	if err := b.Write(byte(v >> 24)); err != nil {
+		return err
+	}
+	if err := b.Write(byte(v >> 16)); err != nil {
+		return err
+	}
+	if err := b.Write(byte(v >> 8)); err != nil {
+		return err
+	}
+	return b.Write(byte(v))
+}
+
+// WriteQName encodes a name as length-prefixed labels terminated by a zero byte.
+// Does NOT emit compression pointers — full labels are simpler and always correct.
+// (Compression is a "nice to have" optimization, not a correctness requirement.)
+func (b *BytePacketBuffer) WriteQName(name string) error {
+	for _, label := range splitLabels(name) {
+		if len(label) > 63 {
+			return errors.New("label > 63 bytes")
+		}
+		if err := b.WriteU8(uint8(len(label))); err != nil {
+			return err
+		}
+		for i := 0; i < len(label); i++ {
+			if err := b.WriteU8(label[i]); err != nil {
+				return err
+			}
+		}
+	}
+	return b.WriteU8(0)
+}
+
+// splitLabels splits "www.google.com" into ["www", "google", "com"].
+// Empty labels (consecutive dots, trailing dot) are dropped.
+func splitLabels(name string) []string {
+	if name == "" {
+		return nil
+	}
+	var out []string
+	start := 0
+	for i := 0; i < len(name); i++ {
+		if name[i] == '.' {
+			if i > start {
+				out = append(out, name[start:i])
+			}
+			start = i + 1
+		}
+	}
+	if start < len(name) {
+		out = append(out, name[start:])
+	}
+	return out
+}
+
+// SetU16 patches a 16-bit value at an absolute offset without moving the cursor.
+// Used for back-filling an rdlength placeholder once we've written the rdata.
+func (b *BytePacketBuffer) SetU16(pos int, v uint16) error {
+	if pos < 0 || pos+1 >= len(b.Buf) {
+		return errors.New("set_u16 out of range")
+	}
+	b.Buf[pos] = byte(v >> 8)
+	b.Buf[pos+1] = byte(v)
+	return nil
+}

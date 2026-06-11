@@ -60,3 +60,42 @@ func (p *Packet) FromBuffer(buf *BytePacketBuffer) error {
 
 	return nil
 }
+
+func (p *Packet) Write(buf *BytePacketBuffer) error {
+	// Sync header section counts to slice lengths so a caller can just
+	// append to slices without remembering to set Header.Questions etc.
+	p.Header.Questions = uint16(len(p.Questions))
+	p.Header.Answers = uint16(len(p.Answers))
+	p.Header.AuthoritativeEntries = uint16(len(p.Authorities))
+	p.Header.ResourceEntries = uint16(len(p.Resources))
+
+	err := p.Header.Write(buf)
+	if err != nil {
+		return err
+	}
+	for _, question := range p.Questions {
+		err = question.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	for _, answer := range p.Answers {
+		err = answer.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	for _, authority := range p.Authorities {
+		err = authority.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	for _, resource := range p.Resources {
+		err = resource.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}

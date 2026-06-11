@@ -83,3 +83,45 @@ func (r Record) String() string {
 		return fmt.Sprintf("UNKNOWN(%d) %s (ttl=%d, len=%d)", uint16(r.Type), r.Domain, r.TTL, r.DataLen)
 	}
 }
+
+func (r *Record) Write(buf *BytePacketBuffer) error {
+	switch r.Type {
+	case TypeA:
+		err := buf.WriteQName(r.Domain)
+		if err != nil {
+			return err
+		}
+
+		err = buf.WriteU16(uint16(r.Type))
+		if err != nil {
+			return err
+		}
+
+		err = buf.WriteU16(uint16(1))
+		if err != nil {
+			return err
+		}
+
+		err = buf.WriteU32(uint32(r.TTL))
+		if err != nil {
+			return err
+		}
+
+		err = buf.WriteU16(uint16(4)) //for A record will change later
+		if err != nil {
+			return err
+		}
+
+		rawIpBytes := r.Addr.As4()
+		for _, ipByte := range rawIpBytes {
+			err = buf.WriteU8(uint8(ipByte))
+			if err != nil {
+				return err
+			}
+		}
+	default:
+		return fmt.Errorf("Write: unsupported record type %s", r.Type)
+	}
+
+	return nil
+}

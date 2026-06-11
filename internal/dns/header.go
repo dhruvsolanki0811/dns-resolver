@@ -98,3 +98,58 @@ func (h *Header) Read(buf *BytePacketBuffer) error {
 	}
 	return nil
 }
+
+// Write encodes the header into 12 bytes at the current cursor position.
+func (h *Header) Write(buf *BytePacketBuffer) error {
+	if err := buf.WriteU16(h.ID); err != nil {
+		return err
+	}
+
+	// Pack the booleans back into two flag bytes.
+	var a, b byte
+	if h.RecursionDesired {
+		a |= 1 << 0
+	}
+	if h.TruncatedMessage {
+		a |= 1 << 1
+	}
+	if h.AuthoritativeAnswer {
+		a |= 1 << 2
+	}
+	a |= (h.Opcode & 0x0F) << 3
+	if h.Response {
+		a |= 1 << 7
+	}
+
+	b |= byte(h.Rescode) & 0x0F
+	if h.CheckingDisabled {
+		b |= 1 << 4
+	}
+	if h.AuthedData {
+		b |= 1 << 5
+	}
+	if h.Z {
+		b |= 1 << 6
+	}
+	if h.RecursionAvailable {
+		b |= 1 << 7
+	}
+
+	if err := buf.WriteU8(a); err != nil {
+		return err
+	}
+	if err := buf.WriteU8(b); err != nil {
+		return err
+	}
+
+	if err := buf.WriteU16(h.Questions); err != nil {
+		return err
+	}
+	if err := buf.WriteU16(h.Answers); err != nil {
+		return err
+	}
+	if err := buf.WriteU16(h.AuthoritativeEntries); err != nil {
+		return err
+	}
+	return buf.WriteU16(h.ResourceEntries)
+}

@@ -5,7 +5,7 @@ import "fmt"
 type QueryType uint16
 
 const (
-	TypeUnknown QueryType = 0 
+	TypeUnknown QueryType = 0
 	TypeA       QueryType = 1
 )
 
@@ -47,4 +47,18 @@ func (q *Question) Read(buf *BytePacketBuffer) error {
 		return err
 	}
 	return nil
+}
+
+func (q *Question) Write(buf *BytePacketBuffer) error {
+	err := buf.WriteQName(q.Name)
+	if err != nil {
+		return err
+	}
+
+	err = buf.WriteU16(uint16(q.Qtype))
+	if err != nil {
+		return err
+	}
+
+	return buf.WriteU16(uint16(1))
 }
